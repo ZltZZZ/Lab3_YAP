@@ -140,6 +140,10 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="lab_3.c" />
+    <ClCompile Include="MD5.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="MD5.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

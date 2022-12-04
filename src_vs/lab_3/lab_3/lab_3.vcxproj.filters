@@ -18,5 +18,13 @@
     <ClCompile Include="lab_3.c">
       <Filter>Исходные файлы</Filter>
     </ClCompile>
+    <ClCompile Include="MD5.c">
+      <Filter>Исходные файлы</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="MD5.h">
+      <Filter>Файлы заголовков</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
