@@ -4,6 +4,7 @@
 #include <stdio.h>
 
 typedef unsigned char byte;
+typedef unsigned int byte4;
 
 const unsigned long int s[64] = {
 	7, 12, 17, 22,   7, 12, 17, 22,   7, 12, 17, 22,  7, 12, 17, 22,
@@ -38,11 +39,16 @@ unsigned int bswap(unsigned int v)
 		| ((v << 8) & 0xff0000) | (v << 24);
 }
 
+byte4 rol(byte4 a, int offset)
+{
+	return a << offset | a >> (32 - offset);
+}
+
 void get_md5_hash(unsigned char* buff_in, unsigned char* buff_out) {
-	unsigned long int A = INIT_VECTOR_A,
-					  B = INIT_VECTOR_B,
-					  C = INIT_VECTOR_C,
-					  D = INIT_VECTOR_D;
+	byte4	A0 = INIT_VECTOR_A,
+			B0 = INIT_VECTOR_B,
+			C0 = INIT_VECTOR_C,
+			D0 = INIT_VECTOR_D;
 	unsigned long int len_bytes = strlen(buff_in),     // Длина оригинальной входной строки в байтах
 					  len_bits = len_bytes * 8,        // Длина оригинальной входной строки в битах
 					  new_len_bits = 0,		           // Длина новой строки, после подготовки в битах
@@ -75,10 +81,56 @@ void get_md5_hash(unsigned char* buff_in, unsigned char* buff_out) {
 	//len_bits = bswap(len_bits); // Тут должно быть преобразование из Big-endian в Little-endian, но оно уже преобразовано, то ли сам виндовс little-endian, то ли memcpy копирует в обратном порядке.
 	memcpy(byte_buff + new_len_bytes - 8, &len_bits, sizeof(byte) * 4); // Добавить в конец длину исходной строки в формате 64 бит (little-endian).
 
-	// ОтладОЧКА
-	for (unsigned long int i = 0; i < new_len_bytes; i++) {
-		printf("%x ", byte_buff[i]);
-	}
+	//// ОтладОЧКА
+	//for (unsigned long int i = 0; i < new_len_bytes; i++) {
+	//	printf("%x ", byte_buff[i]);
+	//}
 
 	/* 2. Хеширование. */
+	for (unsigned int chunk = 0; chunk < new_len_bytes; chunk += 64) { // Разбиваем строку на блоки по 512 бит = 64 байт
+		byte4	A = A0,
+				B = B0,
+				C = C0,
+				D = D0;
+		byte4 block = 0; // 32-х битный блок (4 байт) из 512 (64 байт) битного чанка.
+		for (int i = 0; i < 63; i++) {
+			byte4 F;
+			unsigned int g; // Номер 32-х битного блока (4 байт) из 512 (64 байт) битного чанка.
+			
+			if (0 <= i && i <= 15) {
+				F = (B & C) | ((~B) & D);	// Функция F
+				g = i;
+			}
+			else if (16 <= i && i <= 31) {
+				F = (D & B) | ((~D) & C);	// Функция G
+				g = (5 * i + 1) % 16;
+			}
+			else if (32 <= i && i <= 47) {
+				F = B ^ C ^ D;				// Функция H
+				g = (3 * i + 5) % 16;
+			}
+			else { // (48 <= i && i <= 63)
+				F = C ^ (B | (~D));			// Функция I
+				g = (7 * i) % 16;
+			}
+
+			block = (((byte4)byte_buff[chunk + 4 * g]) << 24) |		// XXXX XXXX 0000 0000 0000 0000 0000 0000
+					(((byte4)byte_buff[chunk + 4 * g + 1]) << 16) | // 0000 0000 XXXX XXXX 0000 0000 0000 0000
+					(((byte4)byte_buff[chunk + 4 * g + 2]) << 8) |  // 0000 0000 0000 0000 XXXX XXXX 0000 0000
+					(((byte4)byte_buff[chunk + 4 * g + 3]));		// 0000 0000 0000 0000 0000 0000 XXXX XXXX
+			F = F + A + T[i] + block;
+			A = D;
+			D = C;
+			C = B;
+			B = B + rol(F, s[i]);
+		}
+
+		A0 += A;
+		B0 += B;
+		C0 += C;
+		D0 += D;
+	}
+
+	/* Запись результата. */
+	printf("%x%x%x%x", A0, B0, C0, D0);
 }
