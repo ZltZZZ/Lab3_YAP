@@ -14,6 +14,7 @@
 void getHashListConfig(unsigned char* hashListOut, unsigned int* hashListSizeOut, FILE* file);
 void getPassList(unsigned char* passListOut, unsigned int* passListSizeOut, FILE* file);
 void brutUsual(unsigned char* passList, unsigned char* hashList, unsigned int* passListSize, unsigned int* hasListSize, unsigned int* result);
+unsigned int getPassListSize(FILE* filePassList);
 
 int main()
 {
@@ -24,7 +25,7 @@ int main()
 	unsigned int passListSize = 0;
 	unsigned int hashListSize = 0;
 	unsigned int result[MAX_HASH_COUNT]; for (int i = 0; i < MAX_HASH_COUNT; i++) { result[i] = NOT_FOUND; }
-	unsigned char input[MAX_PATH_TO_FILE];
+	unsigned char input[MAX_PATH_TO_FILE] = { 0 };
 	time_t before = 0, after = 0;
 
 	printf("Enter path to seclist file (type 'def' to use default file): ");
@@ -44,12 +45,16 @@ int main()
 		return 1;
 	}
 
-	// Выделение памяти под массивы
-	// Список паролей из секлиста
-	passList = (unsigned char*)calloc(MAX_PASS_COUNT, MAX_PASS_SIZE * sizeof(unsigned char));
+	printf("Getting Passwords List from %s pass seclist file... ", input);
+
+	passList = (unsigned char*)calloc(getPassListSize(filePassList), MAX_PASS_SIZE * sizeof(unsigned char));
 	if (passList == NULL) {
 		exit(-43);
 	}
+	fseek(filePassList, 0, SEEK_SET);
+	getPassList(passList, &passListSize, filePassList);
+
+	printf("OK\n");
 
 	// Массив под хеши паролей, которые идут в конфигурационном файле
 	hashList = (unsigned char*)calloc(MAX_HASH_COUNT, MD5_HASH_SIZE * sizeof(unsigned char));
@@ -60,9 +65,6 @@ int main()
 	// Получение списков паролей из файлов
 	printf("Getting Hashes from Config file... ");
 	getHashListConfig(hashList, &hashListSize, fileConfig);
-	printf("OK\n");
-	printf("Getting Passwords List from %s pass seclist file... ", input);
-	getPassList(passList, &passListSize, filePassList);
 	printf("OK\n");
 
 	fclose(filePassList);
@@ -152,4 +154,16 @@ void brutUsual(unsigned char* passList, unsigned char* hashList, unsigned int* p
 			}
 		}
 	}
+}
+
+unsigned int getPassListSize(FILE* filePassList) {
+	unsigned char string[MAX_PASS_SIZE];
+	unsigned int size = 0;
+
+	for (int i = 0; (!feof(filePassList)); i++) {
+		size++;
+		fscanf_s(filePassList, "%s", string, MAX_PASS_SIZE);
+	}
+
+	return size;
 }
