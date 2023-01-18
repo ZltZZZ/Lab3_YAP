@@ -72,9 +72,11 @@ int main()
 
 	// Brutforce md5 hash of passwords
 	printf("Starting Brutforce usual\n\n");
-	time(&before);
+	//time(&before);
+	before = clock();
 	brutUsual(passList, hashList, &passListSize, &hashListSize, result);
-	time(&after);
+	//time(&after);
+	after = clock();
 	printf("Finished!\n\n");
 
 	for (unsigned int i = 0; i < hashListSize; i++) {
@@ -90,7 +92,7 @@ int main()
 		}
 	}
 
-	printf("\nTime: %f sec.\n", difftime(after, before));
+	printf("\nTime: %f sec.\n", (after - before) / 1000.0);
 
 	free(passList);
 	free(hashList);
